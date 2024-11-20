@@ -1,14 +1,24 @@
 #include "parser.hpp"
 #include "utils.hpp"
 
-std::unordered_map<std::string, std::vector<std::string>> mailInfo;
-
 // domain to message count
-std::unordered_map<std::string, int> domainCount;
+int domainID = 0;
+std::unordered_map<std::string, int> DomainToID;
+std::vector<std::string> IDToDomain;
+std::vector<std::pair<int, int>> domainRecvCount;
+std::vector<std::pair<int, int>> domainDlivCount;
 // user to message count
-std::unordered_map<std::string, int> userCount;
+int userID = 0;
+std::unordered_map<std::string, int> UserToID;
+std::vector<std::string> IDToUser;
+std::vector<std::pair<int, int>> userRecvCount;
+std::vector<std::pair<int, int>> userDlivCount;
+
 // warnings
-std::vector<std::string> warnings;
+int warningID = 0;
+std::unordered_map<std::string, int> WarningToID;
+std::vector<std::string> IDToWarning;
+std::vector<std::pair<int, int>> warningCount;
 
 int deliverCount = 0; // status=sent
 int recvCount = 0;
@@ -20,24 +30,28 @@ int discardedCount = 0;
 
 void parse_log_oneline(std::string &line) {
     // timestamp hostname postfix/proc[pid]: message
-    std::regex logPattern(R"((\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[\+\-]\d{2}:\d{2})\s+(\S+)\s+postfix\/(\w+)\[\d+\]:\s+(.*))");
+    // use stringstream to split to four parts with space
+    std::stringstream ss(line);
+    std::string timestamp, hostname, prog_proc, msg, proc;
+    ss >> timestamp >> hostname >> prog_proc;
+    std::getline(ss, msg);
+    msg = msg[0] == ' ' ? msg.substr(1) : msg;
 
+    std::regex progProcPtrn(R"(postfix\/(\w+)\[(\d+)\]:)");
     std::smatch match;
-    if(std::regex_match(line, match, logPattern)) {
-        std::string proc = match[3].str();
-        std::string msg = match[4].str();
-        if (proc == "smtpd" || proc == "smtp") {
-            parse_smtpd_msg(msg);
-        }
-        else{
-            parse_msg(msg);
-        }
-        return;
+    if(std::regex_match(prog_proc, match, progProcPtrn)) {
+        proc = match[1].str();
     }
     else {
-        std::cout << "No syslog match found" << '\n';
+        std::cout << "No postfix/proc match found" << '\n';
         exit(1);
     }
+
+    if (proc == "smtpd") parse_smtpd_msg(msg);
+    else if (proc == "smtp") parse_smtp_msg(msg);
+    else parse_msg(msg);
+
+    return;
 }
 
 void parse_msg(std::string &msg) {
@@ -53,7 +67,16 @@ void parse_msg(std::string &msg) {
         std::string detail = match[2].str();
 
         if (type == "warning"){
-            warnings.emplace_back(detail);
+            detail = string_trimmer(detail, 66);
+            if (WarningToID.find(detail) == WarningToID.end()) {
+                WarningToID[detail] = warningID;
+                IDToWarning.emplace_back(detail);
+                warningCount.emplace_back(std::make_pair(1, warningID));
+                warningID++;
+            }
+            else{
+                warningCount[WarningToID[detail]].first++;
+            }
         }
 
         return;
@@ -62,12 +85,12 @@ void parse_msg(std::string &msg) {
         std::string type = "NONE";
         std::string detail = match[0].str();
 
-        if (mailInfo.find(type) == mailInfo.end()) {
-            mailInfo[type] = std::vector<std::string>();
-        }
-        else{
-            mailInfo[type].emplace_back(detail);
-        }
+        // if (mailInfo.find(type) == mailInfo.end()) {
+        //     mailInfo[type] = std::vector<std::string>();
+        // }
+        // else{
+        //     mailInfo[type].emplace_back(detail);
+        // }
     }
     else {
         std::cout << "No message match found" << '\n';
@@ -75,33 +98,79 @@ void parse_msg(std::string &msg) {
     }
 }
 
+void parse_smtp_msg(std::string &msg) {
+    std::regex smtpPtrn(R"(\w+: to=<([^>]*)>, (?:orig_to=<[^>]*>, )?relay=([^,]+), (?:conn_use=[^,]+, )?delay=([^,]+), (?:delays=[^,]+, )?(?:dsn=[^,]+, )?status=(\S+).*)");
+
+    std::smatch match;
+
+    if(std::regex_match(msg, match, smtpPtrn)){
+        std::string recipient = match[1].str();
+        std::string status = match[4].str();
+
+        if (status == "sent") {
+            // For user
+            if (UserToID.find(recipient) == UserToID.end()) {
+                UserToID[recipient] = userID;
+                IDToUser.emplace_back(recipient);
+                userDlivCount.emplace_back(std::make_pair(1, userID));
+                userID++;
+            }
+            else{
+                userDlivCount[UserToID[recipient]].first++;
+            }
+
+            // For domain
+            // std::pair<std::string, std::string> dom_ip = gimme_domain(recipient);
+            // if (DomainToID.find(dom_ip.first) == DomainToID.end()) {
+            //     DomainToID[dom_ip.first] = domainID;
+            //     IDToDomain.emplace_back(dom_ip.first);
+            //     domainDlivCount.emplace_back(std::make_pair(1, domainID));
+            //     domainID++;
+            // }
+            // else{
+            //     domainDlivCount[DomainToID[dom_ip.first]].first++;
+            // }
+
+            deliverCount++;
+        }
+    }
+}
+
 void parse_smtpd_msg(std::string &msg) {
     // std::regex msgPtrn_withColon(R"((\w+):\s+(.*))");
 
-    std::regex clientPtrn(R"(\w+: client=(.+?)(,|$).*)");
+    std::regex clientPtrn(R"(\w+: client=(.+?)(,|$).+sasl_username=(\w+))");
     // std::regex fromPtrn(R"(from=<([^>]*)>, size=(\d+)");
 
     std::regex exceptPtrn(R"(\w+: (reject(?:_warning)?|hold|discard):.*)");
-    std::regex smtpPtrn(R"(\w+: to=<([^>]*)>, (?:orig_to=<[^>]*>, )?relay=([^,]+), (?:conn_use=[^,]+, )?delay=([^,]+), (?:delays=[^,]+, )?(?:dsn=[^,]+, )?status=(\S+).*)");
     std::regex warnPtrn(R"(warning: (.+))");
 
     std::smatch match;
     if(std::regex_match(msg, match, clientPtrn)) {
         recvCount++;
+        // For domain
+        // std::pair<std::string, std::string> dom_ip = gimme_domain(match[1].str());
+        // if (DomainToID.find(dom_ip.first) == DomainToID.end()) {
+        //     DomainToID[dom_ip.first] = domainID;
+        //     IDToDomain.emplace_back(dom_ip.first);
+        //     domainRecvCount.emplace_back(std::make_pair(1, domainID));
+        //     domainID++;
+        // }
+        // else{
+        //     domainRecvCount[DomainToID[dom_ip.first]].first++;
+        // }
 
-        // DOMAIN NOT YET
-        gimme_domain(match[1].str());
-    }
-    else if(std::regex_match(msg, match, smtpPtrn)){
-        std::string recipient = match[1].str();
-        std::string status = match[4].str();
-
-        if (status == "sent") {
-            deliverCount++;
-        }
-
-        // DOMAIN NOT YET
-        gimme_domain(recipient);
+        // // For user
+        // std::string username = match[3].str() + "@" + dom_ip.first;
+        // if (UserToID.find(username) == UserToID.end()) {
+        //     UserToID[username] = userID;
+        //     IDToUser.emplace_back(username);
+        //     userRecvCount.emplace_back(std::make_pair(1, userID));
+        //     userID++;
+        // }
+        // else{
+        //     userRecvCount[UserToID[username]].first++;
+        // }
     }
     else if(std::regex_match(msg, match, exceptPtrn)){
         std::string status = match[1].str();
@@ -117,7 +186,17 @@ void parse_smtpd_msg(std::string &msg) {
         }
     }
     else if(std::regex_match(msg, match, warnPtrn)){
-        warnings.emplace_back(match[1].str());
+        std::string detail = match[1].str();
+        detail = string_trimmer(detail, 66);
+        if (WarningToID.find(detail) == WarningToID.end()) {
+            WarningToID[detail] = warningID;
+            IDToWarning.emplace_back(detail);
+            warningCount.emplace_back(std::make_pair(1, warningID));
+            warningID++;
+        }
+        else{
+            warningCount[WarningToID[detail]].first++;
+        }
     }
     else {
         // std::cout << "No smtpd message match found" << '\n';
@@ -127,28 +206,62 @@ void parse_smtpd_msg(std::string &msg) {
 
 void parse_content(std::ifstream &input_file) {
     std::string line;
-    // std::string output;
 
     while (std::getline(input_file, line)) {
         parse_log_oneline(line);
     }
+    print_summary();
 
-    std::cout << "Received: " << recvCount << '\n';
-    std::cout << "Delivered: " << deliverCount << '\n';
-    std::cout << "Rejected: " << rejectCount << '\n';
-
-    // for (auto &mail : mailInfo) {
-    //     std::cout << mail.first << '\n';
-    //     for (auto &detail : mail.second) {
-    //         std::cout << detail << '\n';
-    //     }
-    // }
-
-    // return output;
+    return;
 }
 
 
-// void print_summary() {
-//     std::unordered_map<std::string, TrafficSummary> senderStats;
-//     std::unordered_map<std::string, TrafficSummary> recipientStats;
-// }
+void print_summary() {
+    std::cout << "Grand Totals\n";
+    std::cout << "------------\n";
+    std::cout << "messages\n\n";
+    std::cout << "Received: " << recvCount << '\n';
+    std::cout << "Delivered: " << deliverCount << '\n';
+    std::cout << "Rejected: " << rejectCount << "\n\n\n";
+
+    std::cout << "Send users by message count\n";
+    std::cout << "------------\n";
+    std::sort(userDlivCount.begin(), userDlivCount.end(), std::greater<std::pair<int, int>>());
+    for (auto &user : userDlivCount) {
+        std::cout << user.first << "\t" << IDToUser[user.second] << '\n';
+    }
+    std::cout << '\n';
+
+    // std::cout << "Send domains by message count\n";
+    // std::cout << "------------\n";
+    // std::sort(domainDlivCount.begin(), domainDlivCount.end(), std::greater<std::pair<int, int>>());
+    // for (auto &dom : domainDlivCount) {
+    //     std::cout << dom.first << "\t" << IDToDomain[dom.second] << '\n';
+    // }
+    // std::cout << '\n';
+
+    // std::cout << "Recieve users by message count\n";
+    // std::cout << "------------\n";
+    // std::sort(userRecvCount.begin(), userRecvCount.end(), std::greater<std::pair<int, int>>());
+    // for (auto &user : userRecvCount) {
+    //     std::cout << user.first << "\t" << IDToUser[user.second] << '\n';
+    // }
+    // std::cout << '\n';
+
+    // std::cout << "Recieve domains by message count\n";
+    // std::cout << "------------\n";
+    // std::sort(domainRecvCount.begin(), domainRecvCount.end(), std::greater<std::pair<int, int>>());
+    // for (auto &dom : domainRecvCount) {
+    //     std::cout << dom.first << "\t" << IDToDomain[dom.second] << '\n';
+    // }
+    // std::cout << '\n';
+
+    std::cout << "Warnings\n";
+    std::cout << "------------\n";
+    std::sort(warningCount.begin(), warningCount.end(), std::greater<std::pair<int, int>>());
+    for (auto &warn : warningCount) {
+        std::cout << warn.first << "\t" << IDToWarning[warn.second] << '\n';
+    }
+
+    return;
+}

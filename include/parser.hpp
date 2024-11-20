@@ -1,6 +1,8 @@
 #pragma once
 
 #include <string>
+#include <string_view>
+#include <sstream>
 #include <fstream>
 #include <unordered_map>
 #include <regex>
@@ -16,13 +18,14 @@
 //     long long discarded;
 // };
 
-struct TrafficSummary {
-    int messageCount;
-    size_t totalSize;
-};
+// struct TrafficSummary {
+//     int messageCount;
+//     size_t totalSize;
+// };
 
 void parse_log_oneline(std::string &line);
 void parse_msg(std::string &msg);
+void parse_smtp_msg(std::string &msg);
 void parse_smtpd_msg(std::string &msg);
 void parse_content(std::ifstream &input_file);
-// void print_summary(const std::unordered_map<std::string, std::string> &recipUser);
+void print_summary();
