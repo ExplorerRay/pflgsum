@@ -10,7 +10,6 @@ void parse_msg(std::string &msg);
 void parse_smtp_msg(std::string &msg);
 void parse_smtpd_msg(std::string &msg);
 void parse_content(std::ifstream &input_file);
-void print_summary();
 
 class Record {
 public:

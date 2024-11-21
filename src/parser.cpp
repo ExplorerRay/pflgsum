@@ -16,7 +16,7 @@ Record::Record() {
     receive_count = 0;
     reject_count = 0;
     deferred_count = 0;
-    bounce_count = 0;   
+    bounce_count = 0;
     discard_count = 0;
 }
 
@@ -94,7 +94,7 @@ void Record::increment_discard() {
 void Record::print_summary() {
     std::cout << "Grand Totals\n";
     std::cout << "------------\n";
-    std::cout << "messages\n\n";
+    std::cout << "Messages\n\n";
     std::cout << "Received: " << this->receive_count << '\n';
     std::cout << "Delivered: " << this->deliver_count << '\n';
     std::cout << "Deferred: " << this->deferred_count << '\n';
@@ -112,7 +112,8 @@ void Record::print_summary() {
         return a.deliver_count > b.deliver_count;
     });
     for (auto& user : user_entries) {
-        std::cout << user.deliver_count << "\t" << user.identifier << '\n';
+        if (user.deliver_count != 0)
+            std::cout << user.deliver_count << "\t" << user.identifier << '\n';
     }
     std::cout << '\n';
 
@@ -136,7 +137,8 @@ void Record::print_summary() {
         return a.receive_count > b.receive_count;
     });
     for (auto& user : user_entries) {
-        std::cout << user.receive_count << "\t" << user.identifier << '\n';
+        if (user.receive_count != 0)
+            std::cout << user.receive_count << "\t" << user.identifier << '\n';
     }
     std::cout << '\n';
 
@@ -145,10 +147,10 @@ void Record::print_summary() {
     std::sort(domain_entries.begin(), domain_entries.end(), [](const struct DomainEntry& a, const struct DomainEntry& b) {
         return a.receive_count > b.receive_count;
     });
-
     for (auto& domain : domain_entries) {
         std::cout << domain.receive_count << "\t" << domain.identifier << '\n';
     }
+    std::cout << '\n';
 
     std::cout << "Warnings\n";
     std::cout << "------------\n";
