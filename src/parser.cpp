@@ -53,26 +53,30 @@ uint64_t& Record::create_or_get_warning(std::string identifier) {
 
 void Record::increment_user_receive(std::string identifier) {
     this->create_or_get_user(identifier).receive_count++;
-    this->receive_count++;
 }
 
 void Record::increment_user_deliver(std::string identifier) {
     this->create_or_get_user(identifier).deliver_count++;
-    this->deliver_count++;
 }
 
 void Record::increment_domain_receive(std::string identifier) {
     this->create_or_get_domain(identifier).receive_count++;
-    this->receive_count++;
 }
 
 void Record::increment_domain_deliver(std::string identifier) {
     this->create_or_get_domain(identifier).deliver_count++;
-    this->deliver_count++;
 }
 
 void Record::increment_warning(std::string identifier) {
     this->create_or_get_warning(identifier)++;
+}
+
+void Record::increment_deliver() {
+    this->deliver_count++;
+}
+
+void Record::increment_receive() {
+    this->receive_count++;
 }
 
 void Record::increment_reject() {
@@ -231,6 +235,7 @@ void parse_smtp_msg(std::string &msg) {
         std::string status = match[4].str();
 
         if (status == "sent") {
+            record.increment_deliver();
             record.increment_user_deliver(recipient);
 
             // For domain
@@ -248,6 +253,7 @@ void parse_smtpd_msg(std::string &msg) {
 
     std::smatch match;
     if(std::regex_match(msg, match, clientPtrn)) {
+        record.increment_receive();
         record.increment_user_receive(match[3].str() + "@" + gimme_domain(match[1].str()).first);
         record.increment_domain_receive(gimme_domain(match[1].str()).first);
     }

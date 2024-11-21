@@ -102,6 +102,16 @@ public:
     void increment_warning(std::string identifier);
 
     /**
+     * @brief Increment the deliver count.
+     */
+    void increment_deliver();
+
+    /**
+     * @brief Increment the receive count.
+     */
+    void increment_receive();
+
+    /**
      * @brief Increment the reject count.
      */
     void increment_reject();
