@@ -120,16 +120,17 @@ void parse_smtp_msg(std::string &msg) {
             }
 
             // For domain
-            // std::pair<std::string, std::string> dom_ip = gimme_domain(recipient);
-            // if (DomainToID.find(dom_ip.first) == DomainToID.end()) {
-            //     DomainToID[dom_ip.first] = domainID;
-            //     IDToDomain.emplace_back(dom_ip.first);
-            //     domainDlivCount.emplace_back(std::make_pair(1, domainID));
-            //     domainID++;
-            // }
-            // else{
-            //     domainDlivCount[DomainToID[dom_ip.first]].first++;
-            // }
+            // parse email to domain with @
+            std::string recp_dom = recipient.substr(recipient.find('@') + 1);
+            if (DomainToID.find(recp_dom) == DomainToID.end()) {
+                DomainToID[recp_dom] = domainID;
+                IDToDomain.emplace_back(recp_dom);
+                domainDlivCount.emplace_back(std::make_pair(1, domainID));
+                domainID++;
+            }
+            else{
+                domainDlivCount[DomainToID[recp_dom]].first++;
+            }
 
             deliverCount++;
         }
@@ -149,28 +150,29 @@ void parse_smtpd_msg(std::string &msg) {
     if(std::regex_match(msg, match, clientPtrn)) {
         recvCount++;
         // For domain
-        // std::pair<std::string, std::string> dom_ip = gimme_domain(match[1].str());
-        // if (DomainToID.find(dom_ip.first) == DomainToID.end()) {
-        //     DomainToID[dom_ip.first] = domainID;
-        //     IDToDomain.emplace_back(dom_ip.first);
-        //     domainRecvCount.emplace_back(std::make_pair(1, domainID));
-        //     domainID++;
-        // }
-        // else{
-        //     domainRecvCount[DomainToID[dom_ip.first]].first++;
-        // }
+        std::pair<std::string, std::string> dom_ip = gimme_domain(match[1].str());
+        if (DomainToID.find(dom_ip.first) == DomainToID.end()) {
+            DomainToID[dom_ip.first] = domainID;
+            IDToDomain.emplace_back(dom_ip.first);
+            domainRecvCount.emplace_back(std::make_pair(1, domainID));
+            domainID++;
+        }
+        else{
+            domainRecvCount[DomainToID[dom_ip.first]].first++;
+        }
 
-        // // For user
-        // std::string username = match[3].str() + "@" + dom_ip.first;
-        // if (UserToID.find(username) == UserToID.end()) {
-        //     UserToID[username] = userID;
-        //     IDToUser.emplace_back(username);
-        //     userRecvCount.emplace_back(std::make_pair(1, userID));
-        //     userID++;
-        // }
-        // else{
-        //     userRecvCount[UserToID[username]].first++;
-        // }
+        // For user
+        std::string username = match[3].str();
+        username = username + "@" + dom_ip.first;
+        if (UserToID.find(username) == UserToID.end()) {
+            UserToID[username] = userID;
+            IDToUser.emplace_back(username);
+            userRecvCount.emplace_back(std::make_pair(1, userID));
+            userID++;
+        }
+        else{
+            userRecvCount[UserToID[username]].first++;
+        }
     }
     else if(std::regex_match(msg, match, exceptPtrn)){
         std::string status = match[1].str();
@@ -232,29 +234,29 @@ void print_summary() {
     }
     std::cout << '\n';
 
-    // std::cout << "Send domains by message count\n";
-    // std::cout << "------------\n";
-    // std::sort(domainDlivCount.begin(), domainDlivCount.end(), std::greater<std::pair<int, int>>());
-    // for (auto &dom : domainDlivCount) {
-    //     std::cout << dom.first << "\t" << IDToDomain[dom.second] << '\n';
-    // }
-    // std::cout << '\n';
+    std::cout << "Send domains by message count\n";
+    std::cout << "------------\n";
+    std::sort(domainDlivCount.begin(), domainDlivCount.end(), std::greater<std::pair<int, int>>());
+    for (auto &dom : domainDlivCount) {
+        std::cout << dom.first << "\t" << IDToDomain[dom.second] << '\n';
+    }
+    std::cout << '\n';
 
-    // std::cout << "Recieve users by message count\n";
-    // std::cout << "------------\n";
-    // std::sort(userRecvCount.begin(), userRecvCount.end(), std::greater<std::pair<int, int>>());
-    // for (auto &user : userRecvCount) {
-    //     std::cout << user.first << "\t" << IDToUser[user.second] << '\n';
-    // }
-    // std::cout << '\n';
+    std::cout << "Recieve users by message count\n";
+    std::cout << "------------\n";
+    std::sort(userRecvCount.begin(), userRecvCount.end(), std::greater<std::pair<int, int>>());
+    for (auto &user : userRecvCount) {
+        std::cout << user.first << "\t" << IDToUser[user.second] << '\n';
+    }
+    std::cout << '\n';
 
-    // std::cout << "Recieve domains by message count\n";
-    // std::cout << "------------\n";
-    // std::sort(domainRecvCount.begin(), domainRecvCount.end(), std::greater<std::pair<int, int>>());
-    // for (auto &dom : domainRecvCount) {
-    //     std::cout << dom.first << "\t" << IDToDomain[dom.second] << '\n';
-    // }
-    // std::cout << '\n';
+    std::cout << "Recieve domains by message count\n";
+    std::cout << "------------\n";
+    std::sort(domainRecvCount.begin(), domainRecvCount.end(), std::greater<std::pair<int, int>>());
+    for (auto &dom : domainRecvCount) {
+        std::cout << dom.first << "\t" << IDToDomain[dom.second] << '\n';
+    }
+    std::cout << '\n';
 
     std::cout << "Warnings\n";
     std::cout << "------------\n";
