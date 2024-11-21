@@ -12,12 +12,12 @@
 
 Record record;
 
-re2::RE2 msgPtrn_withColon(R"((\w+):\s+(.*))");
-re2::RE2 msgPtrn_noColon(R"(.+)");
-re2::RE2 smtpPtrn(R"(\w+: to=<([^>]*)>, (?:orig_to=<[^>]*>, )?relay=([^,]+), (?:conn_use=[^,]+, )?delay=([^,]+), (?:delays=[^,]+, )?(?:dsn=[^,]+, )?status=(\S+).*)");
-re2::RE2 clientPtrn(R"(\w+: client=(.+?)(,|$).+sasl_username=(\w+))");
-re2::RE2 exceptPtrn(R"(\w+: (reject(?:_warning)?|hold|discard))");
-re2::RE2 warnPtrn(R"(warning: (.+))");
+re2::RE2 g_pattern_with_colon(R"((\w+):\s+(.*))");
+re2::RE2 g_pattern_no_colon(R"(.+)");
+re2::RE2 g_smtp_pattern(R"(\w+: to=<([^>]*)>, (?:orig_to=<[^>]*>, )?relay=([^,]+), (?:conn_use=[^,]+, )?delay=([^,]+), (?:delays=[^,]+, )?(?:dsn=[^,]+, )?status=(\S+).*)");
+re2::RE2 g_client_pattern(R"(\w+: client=(.+?)(,|$).+sasl_username=(\w+))");
+re2::RE2 g_except_pattern(R"(\w+: (reject(?:_warning)?|hold|discard):.*)");
+re2::RE2 g_warn_pattern(R"(warning: (.+))");
 
 void parse_log_oneline(std::string &line) {
     // timestamp hostname postfix/proc[pid]: message
@@ -48,12 +48,12 @@ void parse_log_oneline(std::string &line) {
 
 void parse_msg(std::string &msg) {
     std::string type, detail;
-    if (re2::RE2::FullMatch(msg, msgPtrn_withColon, &type, &detail)) {
+    if (re2::RE2::FullMatch(msg, g_pattern_with_colon, &type, &detail)) {
         if (type == "warning") {
             detail = string_trimmer(detail, 66);
             record.increment_warning(detail);
         }
-    } else if (re2::RE2::FullMatch(msg, msgPtrn_noColon, &detail)) {
+    } else if (re2::RE2::FullMatch(msg, g_pattern_no_colon, &detail)) {
         type = "NONE";
     } else {
         std::cout << "No message match found" << '\n';
@@ -64,7 +64,7 @@ void parse_msg(std::string &msg) {
 void parse_smtp_msg(std::string &msg) {
     std::string recipient, relay, delay, status;
 
-    if (re2::RE2::FullMatch(msg, smtpPtrn, &recipient, &relay, &delay, &status)) {
+    if (re2::RE2::FullMatch(msg, g_smtp_pattern, &recipient, &relay, &delay, &status)) {
         if (status == "sent") {
             std::string recp_dom = recipient.substr(recipient.find('@') + 1);
             record.increment_deliver(recipient, recp_dom);
@@ -75,15 +75,15 @@ void parse_smtp_msg(std::string &msg) {
 void parse_smtpd_msg(std::string &msg) {
     std::string client, domain, username, detail, status;
 
-    if (re2::RE2::FullMatch(msg, clientPtrn, &client, &domain, &username)) {
+    if (re2::RE2::FullMatch(msg, g_client_pattern, &client, &domain, &username)) {
         std::string user = username + "@" + gimme_domain(client).first;
         std::string user_domain = gimme_domain(client).first;
         record.increment_receive(user, user_domain);
-    } else if (re2::RE2::FullMatch(msg, exceptPtrn, &status)) {
+    } else if (re2::RE2::FullMatch(msg, g_except_pattern, &status)) {
         if (status == "reject") record.increment_reject();
         else if (status == "hold") record.increment_deferred();
         else if (status == "discard") record.increment_discard();
-    } else if (re2::RE2::FullMatch(msg, warnPtrn, &detail)) {
+    } else if (re2::RE2::FullMatch(msg, g_warn_pattern, &detail)) {
         detail = string_trimmer(detail, 66);
         record.increment_warning(detail);
     }

@@ -1,4 +1,5 @@
 #include "utils.hpp"
+#include <re2/re2.h>
 
 std::string string_trimmer(const std::string &inputString, const size_t maxLen) {
     std::string trimmedString = inputString;
@@ -10,26 +11,25 @@ std::string string_trimmer(const std::string &inputString, const size_t maxLen) 
     return trimmedString;
 }
 
+static re2::RE2::Options options;
+static re2::RE2 pattern1(R"(^([^\[]+)\[((?:\d{1,3}\.){3}\d{1,3})\])");
+static re2::RE2 pattern2(R"(^([^\/]+)\/([0-9a-fA-F.:]+))");
+static re2::RE2 pattern3(R"(^([^\[\(\/]+)[\[\(\/]([^\]\)]+)[\]\)]?:?\s*$)");
 std::pair<std::string, std::string> gimme_domain(const std::string& input) {
     std::string domain, ipAddr;
-    std::smatch match;
 
-    // Newer versions of Postfix have them "dom.ain[i.p.add.ress]"
-    std::regex pattern1(R"(^([^\[]+)\[((?:\d{1,3}\.){3}\d{1,3})\])");
-    // Older versions of Postfix have them "dom.ain/i.p.add.ress"
-    std::regex pattern2(R"(^([^\/]+)\/([0-9a-f.:]+))", std::regex::icase);
-    // More exhaustive method
-    std::regex pattern3(R"(^([^\[\(\/]+)[\[\(\/]([^\]\)]+)[\]\)]?:?\s*$)");
+    re2::StringPiece input_sp(input);
+    re2::StringPiece domain_sp, ipAddr_sp;
 
-    if (std::regex_match(input, match, pattern1)) {
-        domain = match[1];
-        ipAddr = match[2];
-    } else if (std::regex_match(input, match, pattern2)) {
-        domain = match[1];
-        ipAddr = match[2];
-    } else if (std::regex_match(input, match, pattern3)) {
-        domain = match[1];
-        ipAddr = match[2];
+    if (re2::RE2::FullMatch(input_sp, pattern1, &domain_sp, &ipAddr_sp)) {
+        domain = std::string(domain_sp);
+        ipAddr = std::string(ipAddr_sp);
+    } else if (re2::RE2::FullMatch(input_sp, pattern2, &domain_sp, &ipAddr_sp)) {
+        domain = std::string(domain_sp);
+        ipAddr = std::string(ipAddr_sp);
+    } else if (re2::RE2::FullMatch(input_sp, pattern3, &domain_sp, &ipAddr_sp)) {
+        domain = std::string(domain_sp);
+        ipAddr = std::string(ipAddr_sp);
     }
 
     // "mach.host.dom"/"mach.host.do.co" to "host.dom"/"host.do.co"
