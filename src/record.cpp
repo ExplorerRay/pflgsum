@@ -1,5 +1,6 @@
 #include "record.hpp"
 
+#include <algorithm>
 #include <string>
 #include <iostream>
 
