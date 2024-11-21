@@ -1,9 +1,11 @@
 #include "file_reader.hpp"
 #include "parser.hpp"
 
+#include <iostream>
+
 int main(int argc, char **argv) {
-    std::ios::sync_with_stdio(false);
-    std::cin.tie(0);
+    // std::ios::sync_with_stdio(false);
+    // std::cin.tie(0);
 
     if (argc != 2) {
         std::cerr << "Usage: " << argv[0] << " <filename>\n";

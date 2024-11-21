@@ -1,9 +1,9 @@
 CXX = g++
-CXXFLAGS = -std=c++20 -Wall -Wextra -Werror -O3
+CXXFLAGS = -std=c++20 -Wall -Wextra -Werror -Ofast
 INCLUDE = -I./include
 
 SRCS = $(wildcard src/*.cpp)
-OBJS = $(SRCS:.cpp=.o)
+OBJS = $(patsubst src/%.cpp, build/%.o, $(SRCS))
 TARGET = pflgsum
 
 .PHONY: all clean
@@ -11,9 +11,10 @@ TARGET = pflgsum
 all: $(TARGET)
 
 $(TARGET): $(OBJS)
-	$(CXX) $^ -o $@
+	$(CXX) $^ -o $@ $(CXXFLAGS)
 
-%.o: %.cpp
+build/%.o: src/%.cpp
+	@mkdir -p $(dir $@)
 	$(CXX) $(CXXFLAGS) $(INCLUDE) -c $< -o $@
 
 clean:
