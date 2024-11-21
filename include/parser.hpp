@@ -1,5 +1,6 @@
 #pragma once
 
+#include <stdexcept>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -72,28 +73,15 @@ public:
     uint64_t& create_or_get_warning(std::string identifier);
 
     /**
-     * @brief Increment the receive count for a user.
-     * @param identifier The user identifier.
+     * @brief Increment the deliver count for a user and domain.   
      */
-    void increment_user_receive(std::string identifier);
+    void increment_deliver(std::string user_identifier, std::string domain_identifier);
+
 
     /**
-     * @brief Increment the deliver count for a user.
-     * @param identifier The user identifier.
+     * @brief Increment the receive count for a user and domain
      */
-    void increment_user_deliver(std::string identifier);
-
-    /**
-     * @brief Increment the receive count for a domain.
-     * @param identifier The domain identifier.
-     */
-    void increment_domain_receive(std::string identifier);
-
-    /**
-     * @brief Increment the deliver count for a domain.
-     * @param identifier The domain identifier.
-     */
-    void increment_domain_deliver(std::string identifier);
+    void increment_receive(std::string user_identifier, std::string domain_identifier);
 
     /**
      * @brief Increment the warning count for a specific warning.

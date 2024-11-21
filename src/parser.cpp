@@ -51,24 +51,16 @@ uint64_t& Record::create_or_get_warning(std::string identifier) {
     return warning_map[identifier];
 }
 
-void Record::increment_user_receive(std::string identifier) {
-    this->create_or_get_user(identifier).receive_count++;
-    this->receive_count++;
-}
-
-void Record::increment_user_deliver(std::string identifier) {
-    this->create_or_get_user(identifier).deliver_count++;
+void Record::increment_deliver(std::string user_identifier, std::string domain_identifier) {
+    this->create_or_get_user(user_identifier).deliver_count++;
+    this->create_or_get_domain(domain_identifier).deliver_count++;
     this->deliver_count++;
 }
 
-void Record::increment_domain_receive(std::string identifier) {
-    this->create_or_get_domain(identifier).receive_count++;
+void Record::increment_receive(std::string user_identifier, std::string domain_identifier) {
+    this->create_or_get_user(user_identifier).receive_count++;
+    this->create_or_get_domain(domain_identifier).receive_count++;
     this->receive_count++;
-}
-
-void Record::increment_domain_deliver(std::string identifier) {
-    this->create_or_get_domain(identifier).deliver_count++;
-    this->deliver_count++;
 }
 
 void Record::increment_warning(std::string identifier) {
@@ -231,12 +223,8 @@ void parse_smtp_msg(std::string &msg) {
         std::string status = match[4].str();
 
         if (status == "sent") {
-            record.increment_user_deliver(recipient);
-
-            // For domain
-            // parse email to domain with @
             std::string recp_dom = recipient.substr(recipient.find('@') + 1);
-            record.increment_domain_deliver(recp_dom);
+            record.increment_deliver(recipient, recp_dom);
         }
     }
 }
@@ -248,8 +236,7 @@ void parse_smtpd_msg(std::string &msg) {
 
     std::smatch match;
     if(std::regex_match(msg, match, clientPtrn)) {
-        record.increment_user_receive(match[3].str() + "@" + gimme_domain(match[1].str()).first);
-        record.increment_domain_receive(gimme_domain(match[1].str()).first);
+        record.increment_receive(match[3].str() + "@" + gimme_domain(match[1].str()).first, gimme_domain(match[1].str()).first);
     }
     else if(std::regex_match(msg, match, exceptPtrn)){
         std::string status = match[1].str();
