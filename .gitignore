@@ -1,5 +1,5 @@
 *.o
-read
+pflgsum
 test_cases/
 ori.pl
 tmp

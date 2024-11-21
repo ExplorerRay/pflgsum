@@ -4,7 +4,7 @@ INCLUDE = -I./include
 
 SRCS = $(wildcard src/*.cpp)
 OBJS = $(SRCS:.cpp=.o)
-TARGET = read
+TARGET = pflgsum
 
 .PHONY: all clean
 
