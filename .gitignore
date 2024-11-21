@@ -1,0 +1,7 @@
+*.o
+pflgsum
+test_cases/
+ori.pl
+tmp
+out
+.vscode/
