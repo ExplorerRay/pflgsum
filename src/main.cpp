@@ -2,6 +2,7 @@
 #include "parser.hpp"
 #include "threadContext.hpp"
 #include "threadManager.hpp"
+#include "reducer.hpp"
 
 #include <iostream>
 #include <chrono>
@@ -10,8 +11,9 @@ int main(int argc, char **argv) {
     std::ios::sync_with_stdio(false);
     std::cin.tie(0);
 
-    if (argc != 3) {
-        std::cerr << "Usage: " << argv[0] << " <filename> <threadCount>\n";
+    if (argc != 4) {
+        std::cerr << "Usage: " << argv[0] << " <filename> <threadCount> <mode>\n";
+        std::cerr << "  mode: 0 - linear reduce, 1 - tree reduce\n";
         return 1;
     }
 
@@ -21,6 +23,13 @@ int main(int argc, char **argv) {
     
     std::string filename = argv[1];
     int threadCount = std::stoi(argv[2]);
+    int mode = std::stoi(argv[3]);
+
+    if (threadCount <= 0) {
+      std::cerr << "Thread count should be greater than 0\n";
+      return 1;
+    }
+
     std::ifstream input_file = read_file(filename);
   
     ThreadContext* threadContext = ThreadContext::getInstance();
@@ -39,14 +48,26 @@ int main(int argc, char **argv) {
       threadManager.add_thread(parse_content, i, start, end, threadContext);
     }
     threadManager.joinAll();
+    threadManager.clear();
 
     time_point<high_resolution_clock> parseTime = high_resolution_clock::now();
 
-    Record::linearReduce(threadContext->getRecords());
-
+    if (mode == 0) {
+      linearReduce(threadContext->getRecords());
+    } else if(mode == 1) {
+      if (threadCount & (threadCount - 1)) {
+        std::cerr << "Thread count should be a power of 2 For tree reduce\n";
+        return 1;
+      }
+      for (int i = 0; i < threadCount; i+=2) {
+        threadManager.add_thread(treeReduce, i, &threadManager, threadContext);
+      }
+      threadManager.joinAll();
+    }
+    
     time_point<high_resolution_clock> reduceTime = high_resolution_clock::now();
 
-    threadContext->getRecord(0).print_summary(true);
+    threadContext->getRecord(0).print_summary();
     input_file.close();
 
     time_point<high_resolution_clock> outputTime = high_resolution_clock::now();

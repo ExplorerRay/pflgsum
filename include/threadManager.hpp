@@ -33,4 +33,5 @@ public:
 
   std::shared_ptr<std::thread> getThread(size_t index);
   void joinAll();
+  void clear();
 };

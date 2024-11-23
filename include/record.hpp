@@ -111,5 +111,4 @@ public:
 
     void operator+=(Record& rhs);
 
-    static void linearReduce(std::vector<Record>& records);
 };

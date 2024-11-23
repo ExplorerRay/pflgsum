@@ -27,3 +27,8 @@ void ThreadManager::joinAll() {
     }
   }
 }
+
+void ThreadManager::clear() {
+  joinAll();
+  threads.clear();
+}

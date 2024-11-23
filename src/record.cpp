@@ -187,12 +187,3 @@ void Record::operator+=(Record& rhs) {
     this->aggregate(rhs);
 }
 
-void Record::linearReduce(std::vector<Record>& records) {
-    if (records.size() == 0) {
-        return;
-    }
-    Record& result = records[0];
-    for (size_t i = 1; i < records.size(); i++) {
-        result += records[i];
-    }
-}
