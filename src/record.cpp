@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <string>
 #include <iostream>
+#include <vector>
 
 using UserEntry = Record::UserEntry;
 using DomainEntry = Record::DomainEntry;
@@ -79,7 +80,7 @@ void Record::increment_discard() {
     this->discard_count++;
 }
 
-void Record::print_summary() {
+void Record::print_summary(bool verbose) {
     std::cout << "Grand Totals\n";
     std::cout << "------------\n";
     std::cout << "Messages\n\n";
@@ -92,6 +93,9 @@ void Record::print_summary() {
 
     std::cout << "Send users by message count\n";
     std::cout << "------------\n";
+
+    if(!verbose) return;
+
     std::vector<struct UserEntry> user_entries;
     for (auto& entry : this->user_map) {
         user_entries.push_back(entry.second);

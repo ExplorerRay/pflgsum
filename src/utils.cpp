@@ -1,4 +1,5 @@
 #include "utils.hpp"
+#include <iostream>
 #include <re2/re2.h>
 
 std::string string_trimmer(const std::string &inputString, const size_t maxLen) {
@@ -39,3 +40,12 @@ std::pair<std::string, std::string> gimme_domain(const std::string& input) {
 
     return std::make_pair(domain, ipAddr);
 }
+
+void printException(const std::exception& e, std::string exceptionName,
+                    std::string functionName, std::string message) {
+  std::cerr << "Caught " << exceptionName << " in " << functionName << " with message: " << e.what() << std::endl;
+  if (!message.empty()) {
+    std::cerr << "[ERROR]: " << message << std::endl;
+  }
+}
+

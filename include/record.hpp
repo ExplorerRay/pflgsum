@@ -104,5 +104,5 @@ public:
     /**
      * @brief Print a summary of all recorded data.
      */
-    void print_summary();
+    void print_summary(bool verbose = true);
 };

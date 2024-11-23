@@ -3,9 +3,7 @@
 #include "utils.hpp"
 
 #include <string>
-#include <unordered_map>
 #include <sstream>
-#include <fstream>
 #include <iostream>
 #include <re2/re2.h>
 
@@ -19,7 +17,7 @@ re2::RE2 g_client_pattern(R"(\w+: client=(.+?)(,|$).+sasl_username=(\w+))");
 re2::RE2 g_except_pattern(R"(\w+: (reject(?:_warning)?|hold|discard):.*)");
 re2::RE2 g_warn_pattern(R"(warning: (.+))");
 
-void parse_log_oneline(std::string &line) {
+void parse_log_oneline(std::string &line, Record& record) {
     // timestamp hostname postfix/proc[pid]: message
     std::stringstream ss(line);
     std::string timestamp, hostname, prog_proc, msg, proc;
@@ -32,13 +30,13 @@ void parse_log_oneline(std::string &line) {
     if (pos1 != std::string::npos && pos2 != std::string::npos) {
         proc = prog_proc.substr(pos1 + 8, pos2 - (pos1 + 8));
         if (proc == "smtpd") {
-            parse_smtpd_msg(msg);
+            parse_smtpd_msg(msg, record);
         }
         else if (proc == "smtp") {
-            parse_smtp_msg(msg);
+            parse_smtp_msg(msg, record);
         }
         else {
-            parse_msg(msg);
+            parse_msg(msg, record);
         }
     } else {
         std::cout << "No postfix/proc match found" << '\n';
@@ -46,7 +44,7 @@ void parse_log_oneline(std::string &line) {
     }
 }
 
-void parse_msg(std::string &msg) {
+void parse_msg(std::string &msg, Record& record) {
     std::string type, detail;
     if (re2::RE2::FullMatch(msg, g_pattern_with_colon, &type, &detail)) {
         if (type == "warning") {
@@ -61,7 +59,7 @@ void parse_msg(std::string &msg) {
     }
 }
 
-void parse_smtp_msg(std::string &msg) {
+void parse_smtp_msg(std::string &msg, Record& record) {
     std::string recipient, relay, delay, status;
 
     if (re2::RE2::FullMatch(msg, g_smtp_pattern, &recipient, &relay, &delay, &status)) {
@@ -72,7 +70,7 @@ void parse_smtp_msg(std::string &msg) {
     }
 }
 
-void parse_smtpd_msg(std::string &msg) {
+void parse_smtpd_msg(std::string &msg, Record& record) {
     std::string client, domain, username, detail, status;
 
     if (re2::RE2::FullMatch(msg, g_client_pattern, &client, &domain, &username)) {
@@ -89,10 +87,13 @@ void parse_smtpd_msg(std::string &msg) {
     }
 }
 
-void parse_content(std::ifstream &input_file) {
-    std::string line;
-    while (std::getline(input_file, line)) {
-        parse_log_oneline(line);
+void parse_content(int threadID, int start, int end, ThreadContext* context)
+{
+    Record& record = context->getRecord(threadID);
+    std::vector<std::string>& contents = context->getContents();
+    for(int i = start; i < end; i++)
+    {
+        parse_log_oneline(contents[i], record);
     }
-    record.print_summary();
+    record.print_summary(false);
 }

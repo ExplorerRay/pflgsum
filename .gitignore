@@ -5,3 +5,6 @@ ori.pl
 tmp
 out
 .vscode/
+.cache/
+compile_commands.json
+de_maillog
