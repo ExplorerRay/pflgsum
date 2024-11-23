@@ -95,5 +95,4 @@ void parse_content(int threadID, int start, int end, ThreadContext* context)
     {
         parse_log_oneline(contents[i], record);
     }
-    record.print_summary(false);
 }

@@ -27,6 +27,10 @@ Record& ThreadContext::getRecord(size_t index) {
   return records[index];
 }
 
+std::vector<Record>& ThreadContext::getRecords() {
+  return records;
+}
+
 std::vector<std::string>& ThreadContext::getContents()
 {
   return contents;

@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include <unistd.h>
 #include <cstdint>
+#include <vector>
 class Record {
 public:
     /**
@@ -105,4 +106,10 @@ public:
      * @brief Print a summary of all recorded data.
      */
     void print_summary(bool verbose = true);
+
+    void aggregate(Record& other_record);
+
+    void operator+=(Record& rhs);
+
+    static void linearReduce(std::vector<Record>& records);
 };

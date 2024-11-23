@@ -1,9 +1,9 @@
 #include "record.hpp"
 
 #include <algorithm>
+#include <cstddef>
 #include <string>
 #include <iostream>
-#include <vector>
 
 using UserEntry = Record::UserEntry;
 using DomainEntry = Record::DomainEntry;
@@ -158,4 +158,41 @@ void Record::print_summary(bool verbose) {
         std::cout << warning.second << "\t" << warning.first << '\n';
     }
     return;
+}
+
+void Record::aggregate(Record& other_record) {
+    this->deliver_count += other_record.deliver_count;
+    this->receive_count += other_record.receive_count;
+    this->reject_count += other_record.reject_count;
+    this->deferred_count += other_record.deferred_count;
+    this->bounce_count += other_record.bounce_count;
+    this->discard_count += other_record.discard_count;
+
+    for (auto& entry : other_record.user_map) {
+        this->create_or_get_user(const_cast<std::string&>(entry.first)).deliver_count += entry.second.deliver_count;
+        this->create_or_get_user(const_cast<std::string&>(entry.first)).receive_count += entry.second.receive_count;
+    }
+
+    for (auto& entry : other_record.domain_map) {
+        this->create_or_get_domain(const_cast<std::string&>(entry.first)).deliver_count += entry.second.deliver_count;
+        this->create_or_get_domain(const_cast<std::string&>(entry.first)).receive_count += entry.second.receive_count;
+    }
+
+    for (auto& entry : other_record.warning_map) {
+        this->create_or_get_warning(const_cast<std::string&>(entry.first)) += entry.second;
+    }
+}
+
+void Record::operator+=(Record& rhs) {
+    this->aggregate(rhs);
+}
+
+void Record::linearReduce(std::vector<Record>& records) {
+    if (records.size() == 0) {
+        return;
+    }
+    Record& result = records[0];
+    for (size_t i = 1; i < records.size(); i++) {
+        result += records[i];
+    }
 }

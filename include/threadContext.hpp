@@ -17,6 +17,7 @@ public:
   static ThreadContext* getInstance();
   void setThreadCount(size_t count);
   Record& getRecord(size_t index);
+  std::vector<Record>& getRecords();
   std::vector<std::string>& getContents();
 };
 
