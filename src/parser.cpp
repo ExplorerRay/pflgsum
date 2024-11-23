@@ -87,12 +87,47 @@ void parse_smtpd_msg(std::string &msg, Record& record) {
     }
 }
 
-void parse_content(int threadID, int start, int end, ThreadContext* context)
+void parse_content(int threadID, int start, int end, ThreadContext* context, int reduceMode, ThreadManager* threadManager) 
 {
     Record& record = context->getRecord(threadID);
     std::vector<std::string>& contents = context->getContents();
     for(int i = start; i < end; i++)
     {
         parse_log_oneline(contents[i], record);
+    }
+    if (reduceMode == 0)
+    {
+        if ((size_t)threadID + 1 != threadManager->getThreadCount())
+        {
+            auto waitedThread = threadManager->getThread(threadID+1);
+            if (waitedThread->joinable())
+            {
+                waitedThread->join();
+            }
+            record += context->getRecord(threadID+1);
+        }
+    }
+    else if (reduceMode == 1)
+    {
+        size_t twoPower = 2;
+        size_t threadCount = threadManager->getThreadCount();
+        while (twoPower <= threadCount)
+        {
+            if ((threadID % twoPower) == 0)
+            {
+                auto waitedThread = threadManager->getThread(threadID + twoPower/2);
+                if (waitedThread->joinable())
+                {
+                    waitedThread->join();
+                }
+                record += context->getRecord(threadID + twoPower/2);
+            }
+          twoPower *= 2;
+        }
+    }
+    else
+    {
+      std::cerr << "Invalid reduce mode\n";
+      exit(1);
     }
 }
