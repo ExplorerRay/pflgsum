@@ -2,6 +2,7 @@
 #include "parser.hpp"
 
 #include <iostream>
+#include <mpi.h>
 
 int main(int argc, char **argv) {
     std::ios::sync_with_stdio(false);
@@ -12,6 +13,8 @@ int main(int argc, char **argv) {
         return 1;
     }
 
+    MPI_Init(&argc, &argv);
+
     std::string filename = argv[1];
     std::ifstream input_file = read_file(filename);
 
@@ -19,5 +22,6 @@ int main(int argc, char **argv) {
 
     input_file.close();
 
+    MPI_Finalize();
     return 0;
 }

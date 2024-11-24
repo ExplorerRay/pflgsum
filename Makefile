@@ -1,5 +1,5 @@
-CXX = g++
-CXXFLAGS = -std=c++20 -Wall -Wextra -Werror -Ofast 
+CXX = mpicxx
+CXXFLAGS = -std=c++20 -Wall -Wextra -Werror -Ofast
 DEPENDENCIES = -lre2
 INCLUDE = -I./include
 

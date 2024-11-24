@@ -5,6 +5,9 @@
 #include <vector>
 #include <unistd.h>
 
+class Record;
+class MPI_Record;
+
 class Record {
 public:
     /**
@@ -26,6 +29,9 @@ public:
         uint64_t receive_count; ///< Count of received messages for the domain.
         uint64_t deliver_count; ///< Count of delivered messages for the domain.
     };
+
+    // converting to another class for MPI send and receive
+    friend class MPI_Record;
 
 private:
     std::unordered_map<std::string, UserEntry> user_map; ///< Map of user entries indexed by user identifier.
@@ -66,7 +72,7 @@ public:
     uint64_t& create_or_get_warning(std::string& identifier);
 
     /**
-     * @brief Increment the deliver count for a user and domain.   
+     * @brief Increment the deliver count for a user and domain.
      */
     void increment_deliver(std::string& user_identifier, std::string& domain_identifier);
 
@@ -98,12 +104,54 @@ public:
     void increment_bounce();
 
     /**
+     * @brief Convert MPI_Record object to Record object.
+     */
+    Record convert(MPI_Record& mpi_record);
+
+    /**
      * @brief Increment the discard count.
      */
     void increment_discard();
 
     /**
+     * @brief Aggregate two Record objects.
+     */
+    void aggregate(Record& other_record);
+
+    /**
+     * @brief operator+= overload to aggregate two Record objects.
+     */
+    void operator+=(Record& other_record);
+
+    /**
      * @brief Print a summary of all recorded data.
      */
     void print_summary();
+};
+
+// for MPI send and receive
+class MPI_Record {
+public:
+    /**
+     * @brief Constructor to initialize the MPI_Record object.
+     */
+    MPI_Record() = default;
+
+    /**
+     * @brief Convert Record object to MPI_Record object.
+     */
+    MPI_Record convert(Record& record);
+
+// private:
+    std::vector<std::string> user_identifiers;
+    std::vector<uint64_t> user_receive_counts;
+    std::vector<uint64_t> user_deliver_counts;
+    std::vector<std::string> domain_identifiers;
+    std::vector<uint64_t> domain_receive_counts;
+    std::vector<uint64_t> domain_deliver_counts;
+    std::vector<std::string> warning_identifiers;
+    std::vector<uint64_t> warning_counts;
+
+    std::vector<uint64_t> total_counts;
+    // index 0: deliver_count, 1: receive_count, 2: reject_count, 3: deferred_count, 4: bounce_count, 5: discard_count
 };
