@@ -153,6 +153,10 @@ void parse_content(std::ifstream &input_file) {
                 MPI_Recv(&other_mpi_record.warning_identifiers[j], warning_id_len, MPI_CHAR, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
             }
             MPI_Recv(&other_mpi_record.warning_counts[0], warning_entry_size, MPI_UINT64_T, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+            // recv total counts
+            MPI_Recv(&other_mpi_record.total_counts[0], 6, MPI_UINT64_T, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
             other_record.convert(other_mpi_record);
 
             record.aggregate(other_record);
@@ -193,5 +197,6 @@ void parse_content(std::ifstream &input_file) {
         }
         MPI_Send(&mpi_record.warning_counts[0], mpi_record.warning_counts.size(), MPI_UINT64_T, 0, 0, MPI_COMM_WORLD);
 
+        MPI_Send(&mpi_record.total_counts[0], 6, MPI_UINT64_T, 0, 0, MPI_COMM_WORLD);
     }
 }
