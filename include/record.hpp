@@ -106,7 +106,7 @@ public:
     /**
      * @brief Convert MPI_Record object to Record object.
      */
-    Record convert(MPI_Record& mpi_record);
+    void convert(MPI_Record& mpi_record);
 
     /**
      * @brief Increment the discard count.
@@ -140,7 +140,7 @@ public:
     /**
      * @brief Convert Record object to MPI_Record object.
      */
-    MPI_Record convert(Record& record);
+    void convert(Record& record);
 
 // private:
     std::vector<std::string> user_identifiers;

@@ -79,7 +79,7 @@ void Record::increment_discard() {
     this->discard_count++;
 }
 
-Record Record::convert(MPI_Record& mpi_record) {
+void Record::convert(MPI_Record& mpi_record) {
     for (uint i = 0; i < mpi_record.user_identifiers.size(); ++i) {
         Record::UserEntry entry;
         entry.identifier = mpi_record.user_identifiers[i];
@@ -107,7 +107,7 @@ Record Record::convert(MPI_Record& mpi_record) {
     this->bounce_count = mpi_record.total_counts[4];
     this->discard_count = mpi_record.total_counts[5];
 
-    return *this;
+    return;
 }
 
 void Record::aggregate(Record& other_record) {
@@ -215,7 +215,7 @@ void Record::print_summary() {
 }
 
 
-MPI_Record MPI_Record::convert(Record& record) {
+void MPI_Record::convert(Record& record) {
     for (auto& user : record.user_map) {
         Record::UserEntry entry = user.second;
         this->user_identifiers.emplace_back(entry.identifier);
@@ -235,6 +235,7 @@ MPI_Record MPI_Record::convert(Record& record) {
         this->warning_counts.emplace_back(warning.second);
     }
 
+    this->total_counts.resize(6);
     this->total_counts[0] = record.deliver_count;
     this->total_counts[1] = record.receive_count;
     this->total_counts[2] = record.reject_count;
@@ -242,5 +243,5 @@ MPI_Record MPI_Record::convert(Record& record) {
     this->total_counts[4] = record.bounce_count;
     this->total_counts[5] = record.discard_count;
 
-    return *this;
+    return;
 }
