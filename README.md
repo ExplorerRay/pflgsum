@@ -7,7 +7,12 @@ Parallel Postfix log summarizer, simply implement some basic features of `pflogs
 
 ## Build & Run
 1. `git clone` this repo && `cd` into it
-2. Run `make`
+2. Run `make` to build the program
+
+### Serial
+3. `./pflgsum <logfile>`
+
+### MPI
 3. `srun --mpi=pmix -N <num> ./pflgsum <logfile>` (with Slurm)
 
 ## Branches
