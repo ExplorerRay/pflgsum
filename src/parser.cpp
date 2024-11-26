@@ -126,6 +126,8 @@ void parse_content(std::ifstream &input_file) {
                 MPI_Recv(&user_id_len, 1, MPI_UNSIGNED_LONG, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
                 other_mpi_record.user_identifiers[j].resize(user_id_len);
                 MPI_Recv(&other_mpi_record.user_identifiers[j][0], user_id_len, MPI_CHAR, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                // remove null terminator
+                other_mpi_record.user_identifiers[j].pop_back();
             }
             other_mpi_record.user_receive_counts.resize(user_entry_size);
             other_mpi_record.user_deliver_counts.resize(user_entry_size);
@@ -142,6 +144,8 @@ void parse_content(std::ifstream &input_file) {
                 MPI_Recv(&domain_id_len, 1, MPI_UNSIGNED_LONG, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
                 other_mpi_record.domain_identifiers[j].resize(domain_id_len);
                 MPI_Recv(&other_mpi_record.domain_identifiers[j][0], domain_id_len, MPI_CHAR, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                // remove null terminator
+                other_mpi_record.domain_identifiers[j].pop_back();
             }
             other_mpi_record.domain_receive_counts.resize(domain_entry_size);
             other_mpi_record.domain_deliver_counts.resize(domain_entry_size);
@@ -158,6 +162,8 @@ void parse_content(std::ifstream &input_file) {
                 MPI_Recv(&warning_id_len, 1, MPI_UNSIGNED_LONG, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
                 other_mpi_record.warning_identifiers[j].resize(warning_id_len);
                 MPI_Recv(&other_mpi_record.warning_identifiers[j][0], warning_id_len, MPI_CHAR, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                // remove null terminator
+                other_mpi_record.warning_identifiers[j].pop_back();
             }
             other_mpi_record.warning_counts.resize(warning_entry_size);
             MPI_Recv(&other_mpi_record.warning_counts[0], warning_entry_size, MPI_UINT64_T, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
