@@ -14,6 +14,7 @@ int main(int argc, char **argv) {
     }
 
     MPI_Init(&argc, &argv);
+    double start = MPI_Wtime();
 
     std::string filename = argv[1];
     std::ifstream input_file = read_file(filename);
@@ -21,6 +22,8 @@ int main(int argc, char **argv) {
     parse_content(input_file);
 
     input_file.close();
+    double end = MPI_Wtime();
+    std::cout << "Time taken: " << end - start << " seconds" << std::endl;
 
     MPI_Finalize();
     return 0;
