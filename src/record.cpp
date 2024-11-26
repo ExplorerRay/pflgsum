@@ -79,6 +79,64 @@ void Record::increment_discard() {
     this->discard_count++;
 }
 
+void Record::convert(MPI_Record& mpi_record) {
+    for (uint i = 0; i < mpi_record.user_identifiers.size(); ++i) {
+        Record::UserEntry entry;
+        entry.identifier = mpi_record.user_identifiers[i];
+        entry.receive_count = mpi_record.user_receive_counts[i];
+        entry.deliver_count = mpi_record.user_deliver_counts[i];
+        this->user_map[entry.identifier] = entry;
+    }
+
+    for (uint i = 0; i < mpi_record.domain_identifiers.size(); ++i) {
+        Record::DomainEntry entry;
+        entry.identifier = mpi_record.domain_identifiers[i];
+        entry.receive_count = mpi_record.domain_receive_counts[i];
+        entry.deliver_count = mpi_record.domain_deliver_counts[i];
+        this->domain_map[entry.identifier] = entry;
+    }
+
+    for (uint i = 0; i < mpi_record.warning_identifiers.size(); ++i) {
+        this->warning_map[mpi_record.warning_identifiers[i]] = mpi_record.warning_counts[i];
+    }
+
+    this->deliver_count = mpi_record.total_counts[0];
+    this->receive_count = mpi_record.total_counts[1];
+    this->reject_count = mpi_record.total_counts[2];
+    this->deferred_count = mpi_record.total_counts[3];
+    this->bounce_count = mpi_record.total_counts[4];
+    this->discard_count = mpi_record.total_counts[5];
+
+    return;
+}
+
+void Record::aggregate(Record& other_record) {
+    this->deliver_count += other_record.deliver_count;
+    this->receive_count += other_record.receive_count;
+    this->reject_count += other_record.reject_count;
+    this->deferred_count += other_record.deferred_count;
+    this->bounce_count += other_record.bounce_count;
+    this->discard_count += other_record.discard_count;
+
+    for (auto& entry : other_record.user_map) {
+        this->create_or_get_user(const_cast<std::string&>(entry.first)).deliver_count += entry.second.deliver_count;
+        this->create_or_get_user(const_cast<std::string&>(entry.first)).receive_count += entry.second.receive_count;
+    }
+
+    for (auto& entry : other_record.domain_map) {
+        this->create_or_get_domain(const_cast<std::string&>(entry.first)).deliver_count += entry.second.deliver_count;
+        this->create_or_get_domain(const_cast<std::string&>(entry.first)).receive_count += entry.second.receive_count;
+    }
+
+    for (auto& entry : other_record.warning_map) {
+        this->create_or_get_warning(const_cast<std::string&>(entry.first)) += entry.second;
+    }
+}
+
+void Record::operator+=(Record& rhs) {
+    this->aggregate(rhs);
+}
+
 void Record::print_summary() {
     std::cout << "Grand Totals\n";
     std::cout << "------------\n";
@@ -153,5 +211,37 @@ void Record::print_summary() {
     for (auto& warning : warning_entries) {
         std::cout << warning.second << "\t" << warning.first << '\n';
     }
+    return;
+}
+
+
+void MPI_Record::convert(Record& record) {
+    for (auto& user : record.user_map) {
+        Record::UserEntry entry = user.second;
+        this->user_identifiers.emplace_back(entry.identifier);
+        this->user_receive_counts.emplace_back(entry.receive_count);
+        this->user_deliver_counts.emplace_back(entry.deliver_count);
+    }
+
+    for (auto& domain : record.domain_map) {
+        Record::DomainEntry entry = domain.second;
+        this->domain_identifiers.emplace_back(entry.identifier);
+        this->domain_receive_counts.emplace_back(entry.receive_count);
+        this->domain_deliver_counts.emplace_back(entry.deliver_count);
+    }
+
+    for (auto& warning : record.warning_map) {
+        this->warning_identifiers.emplace_back(warning.first);
+        this->warning_counts.emplace_back(warning.second);
+    }
+
+    this->total_counts.resize(6);
+    this->total_counts[0] = record.deliver_count;
+    this->total_counts[1] = record.receive_count;
+    this->total_counts[2] = record.reject_count;
+    this->total_counts[3] = record.deferred_count;
+    this->total_counts[4] = record.bounce_count;
+    this->total_counts[5] = record.discard_count;
+
     return;
 }
