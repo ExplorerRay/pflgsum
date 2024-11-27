@@ -142,6 +142,11 @@ public:
      */
     void convert(Record& record);
 
+    /**
+     * @brief Split whole ID string into individual strings.
+     */
+    void split_identifiers(std::string& total_id, std::vector<size_t>& id_lens, int type);
+
 // private:
     std::vector<std::string> user_identifiers;
     std::vector<uint64_t> user_receive_counts;

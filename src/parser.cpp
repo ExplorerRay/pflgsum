@@ -118,55 +118,70 @@ void parse_content(std::ifstream &input_file) {
         for (int i = 1; i < size; ++i) {
             // recv user ID vector size
             size_t user_entry_size;
-            MPI_Recv(&user_entry_size, 1, MPI_UNSIGNED_LONG, i, 10, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            MPI_Recv(&user_entry_size, 1, MPI_UNSIGNED_LONG, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
             other_mpi_record.user_identifiers.resize(user_entry_size);
-            for (size_t j = 0; j < user_entry_size; ++j) {
-                size_t user_id_len;
-                // recv user ID string length
-                MPI_Recv(&user_id_len, 1, MPI_UNSIGNED_LONG, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-                other_mpi_record.user_identifiers[j].resize(user_id_len);
-                MPI_Recv(&other_mpi_record.user_identifiers[j][0], user_id_len, MPI_CHAR, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-                // remove null terminator
-                other_mpi_record.user_identifiers[j].pop_back();
-            }
             other_mpi_record.user_receive_counts.resize(user_entry_size);
             other_mpi_record.user_deliver_counts.resize(user_entry_size);
             MPI_Recv(&other_mpi_record.user_receive_counts[0], user_entry_size, MPI_UINT64_T, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
             MPI_Recv(&other_mpi_record.user_deliver_counts[0], user_entry_size, MPI_UINT64_T, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
+            // recv total user ID
+            std::vector<size_t> user_id_lens(user_entry_size);
+            size_t total_user_id_len = 0;
+            MPI_Recv(&user_id_lens[0], user_entry_size, MPI_UNSIGNED_LONG, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            for (size_t j = 0; j < user_entry_size; ++j) {
+                total_user_id_len += user_id_lens[j];
+            }
+            std::string total_user_id;
+            total_user_id.resize(total_user_id_len+1);
+            MPI_Recv(&total_user_id[0], total_user_id_len+1, MPI_CHAR, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            total_user_id.pop_back();
+            // split total_user_id into individual user IDs
+            other_mpi_record.split_identifiers(total_user_id, user_id_lens, 0);
+
             // recv domain ID vector size
             size_t domain_entry_size;
             MPI_Recv(&domain_entry_size, 1, MPI_UNSIGNED_LONG, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
             other_mpi_record.domain_identifiers.resize(domain_entry_size);
-            for (size_t j = 0; j < domain_entry_size; ++j) {
-                size_t domain_id_len;
-                // recv domain ID string length
-                MPI_Recv(&domain_id_len, 1, MPI_UNSIGNED_LONG, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-                other_mpi_record.domain_identifiers[j].resize(domain_id_len);
-                MPI_Recv(&other_mpi_record.domain_identifiers[j][0], domain_id_len, MPI_CHAR, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-                // remove null terminator
-                other_mpi_record.domain_identifiers[j].pop_back();
-            }
             other_mpi_record.domain_receive_counts.resize(domain_entry_size);
             other_mpi_record.domain_deliver_counts.resize(domain_entry_size);
             MPI_Recv(&other_mpi_record.domain_receive_counts[0], domain_entry_size, MPI_UINT64_T, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
             MPI_Recv(&other_mpi_record.domain_deliver_counts[0], domain_entry_size, MPI_UINT64_T, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
+            // recv total domain ID
+            std::vector<size_t> domain_id_lens(domain_entry_size);
+            size_t total_domain_id_len = 0;
+            MPI_Recv(&domain_id_lens[0], domain_entry_size, MPI_UNSIGNED_LONG, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            for (size_t j = 0; j < domain_entry_size; ++j) {
+                total_domain_id_len += domain_id_lens[j];
+            }
+            std::string total_domain_id;
+            total_domain_id.resize(total_domain_id_len+1);
+            MPI_Recv(&total_domain_id[0], total_domain_id_len+1, MPI_CHAR, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            total_domain_id.pop_back();
+            // split total_domain_id into individual domain IDs
+            other_mpi_record.split_identifiers(total_domain_id, domain_id_lens, 1);
+
             // recv warning ID vector size
             size_t warning_entry_size;
             MPI_Recv(&warning_entry_size, 1, MPI_UNSIGNED_LONG, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
             other_mpi_record.warning_identifiers.resize(warning_entry_size);
-            for (size_t j = 0; j < warning_entry_size; ++j) {
-                size_t warning_id_len;
-                // recv warning ID string length
-                MPI_Recv(&warning_id_len, 1, MPI_UNSIGNED_LONG, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-                other_mpi_record.warning_identifiers[j].resize(warning_id_len);
-                MPI_Recv(&other_mpi_record.warning_identifiers[j][0], warning_id_len, MPI_CHAR, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-                // remove null terminator
-                other_mpi_record.warning_identifiers[j].pop_back();
-            }
             other_mpi_record.warning_counts.resize(warning_entry_size);
             MPI_Recv(&other_mpi_record.warning_counts[0], warning_entry_size, MPI_UINT64_T, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+            // recv total warning ID
+            std::vector<size_t> warning_id_lens(warning_entry_size);
+            size_t total_warning_id_len = 0;
+            MPI_Recv(&warning_id_lens[0], warning_entry_size, MPI_UNSIGNED_LONG, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            for (size_t j = 0; j < warning_entry_size; ++j) {
+                total_warning_id_len += warning_id_lens[j];
+            }
+            std::string total_warning_id;
+            total_warning_id.resize(total_warning_id_len+1);
+            MPI_Recv(&total_warning_id[0], total_warning_id_len+1, MPI_CHAR, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            total_warning_id.pop_back();
+            // split total_warning_id into individual warning IDs
+            other_mpi_record.split_identifiers(total_warning_id, warning_id_lens, 2);
 
             // recv total counts
             other_mpi_record.total_counts.resize(6);
@@ -182,35 +197,59 @@ void parse_content(std::ifstream &input_file) {
 
         // send user ID vector size
         size_t user_entry_size = mpi_record.user_identifiers.size();
-        MPI_Send(&user_entry_size, 1, MPI_UNSIGNED_LONG, 0, 10, MPI_COMM_WORLD);
-        for(auto user_id : mpi_record.user_identifiers) {
-            size_t user_id_len = user_id.length() + 1;
-            MPI_Send(&user_id_len, 1, MPI_UNSIGNED_LONG, 0, 0, MPI_COMM_WORLD);
-            MPI_Send(user_id.c_str(), user_id_len, MPI_CHAR, 0, 0, MPI_COMM_WORLD);
-        }
+        MPI_Send(&user_entry_size, 1, MPI_UNSIGNED_LONG, 0, 0, MPI_COMM_WORLD);
         MPI_Send(&mpi_record.user_receive_counts[0], user_entry_size, MPI_UINT64_T, 0, 0, MPI_COMM_WORLD);
         MPI_Send(&mpi_record.user_deliver_counts[0], user_entry_size, MPI_UINT64_T, 0, 0, MPI_COMM_WORLD);
+
+        // combine all user IDs into a single string and send once
+        size_t total_user_id_len = 0;
+        std::vector<size_t> user_id_lens;
+        std::string total_user_id = "";
+        for(auto user_id : mpi_record.user_identifiers) {
+            size_t user_id_len = user_id.length();
+            user_id_lens.emplace_back(user_id_len);
+            total_user_id_len += user_id_len;
+            total_user_id += user_id;
+        }
+        MPI_Send(&user_id_lens[0], user_entry_size, MPI_UNSIGNED_LONG, 0, 0, MPI_COMM_WORLD);
+        MPI_Send(total_user_id.c_str(), total_user_id_len+1, MPI_CHAR, 0, 0, MPI_COMM_WORLD);
 
         // send domain ID vector size
         size_t domain_entry_size = mpi_record.domain_identifiers.size();
         MPI_Send(&domain_entry_size, 1, MPI_UNSIGNED_LONG, 0, 0, MPI_COMM_WORLD);
-        for(auto domain_id : mpi_record.domain_identifiers) {
-            size_t domain_id_len = domain_id.length() + 1;
-            MPI_Send(&domain_id_len, 1, MPI_UNSIGNED_LONG, 0, 0, MPI_COMM_WORLD);
-            MPI_Send(domain_id.c_str(), domain_id_len, MPI_CHAR, 0, 0, MPI_COMM_WORLD);
-        }
         MPI_Send(&mpi_record.domain_receive_counts[0], domain_entry_size, MPI_UINT64_T, 0, 0, MPI_COMM_WORLD);
         MPI_Send(&mpi_record.domain_deliver_counts[0], domain_entry_size, MPI_UINT64_T, 0, 0, MPI_COMM_WORLD);
+
+        // combine all domain IDs into a single string and send once
+        size_t total_domain_id_len = 0;
+        std::vector<size_t> domain_id_lens;
+        std::string total_domain_id = "";
+        for(auto domain_id : mpi_record.domain_identifiers) {
+            size_t domain_id_len = domain_id.length();
+            total_domain_id_len += domain_id_len;
+            domain_id_lens.emplace_back(domain_id_len);
+            total_domain_id += domain_id;
+        }
+        MPI_Send(&domain_id_lens[0], domain_entry_size, MPI_UNSIGNED_LONG, 0, 0, MPI_COMM_WORLD);
+        MPI_Send(total_domain_id.c_str(), total_domain_id_len+1, MPI_CHAR, 0, 0, MPI_COMM_WORLD);
 
         // send warning ID vector size
         size_t warning_entry_size = mpi_record.warning_identifiers.size();
         MPI_Send(&warning_entry_size, 1, MPI_UNSIGNED_LONG, 0, 0, MPI_COMM_WORLD);
-        for(auto warning_id : mpi_record.warning_identifiers) {
-            size_t warning_id_len = warning_id.length() + 1;
-            MPI_Send(&warning_id_len, 1, MPI_UNSIGNED_LONG, 0, 0, MPI_COMM_WORLD);
-            MPI_Send(warning_id.c_str(), warning_id_len, MPI_CHAR, 0, 0, MPI_COMM_WORLD);
-        }
         MPI_Send(&mpi_record.warning_counts[0], warning_entry_size, MPI_UINT64_T, 0, 0, MPI_COMM_WORLD);
+
+        // combine all warning IDs into a single string and send once
+        size_t total_warning_id_len = 0;
+        std::vector<size_t> warning_id_lens;
+        std::string total_warning_id = "";
+        for(auto warning_id : mpi_record.warning_identifiers) {
+            size_t warning_id_len = warning_id.length();
+            warning_id_lens.emplace_back(warning_id_len);
+            total_warning_id_len += warning_id_len;
+            total_warning_id += warning_id;
+        }
+        MPI_Send(&warning_id_lens[0], warning_entry_size, MPI_UNSIGNED_LONG, 0, 0, MPI_COMM_WORLD);
+        MPI_Send(total_warning_id.c_str(), total_warning_id_len+1, MPI_CHAR, 0, 0, MPI_COMM_WORLD);
 
         MPI_Send(&mpi_record.total_counts[0], 6, MPI_UINT64_T, 0, 0, MPI_COMM_WORLD);
     }

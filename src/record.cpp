@@ -245,3 +245,28 @@ void MPI_Record::convert(Record& record) {
 
     return;
 }
+
+void MPI_Record::split_identifiers(std::string& total_id, std::vector<size_t>& id_lens, int type) {
+    size_t start = 0;
+    if (type == 0) { // user
+        for (size_t i = 0; i < id_lens.size(); ++i) {
+            std::string id = total_id.substr(start, id_lens[i]);
+            start += id_lens[i];
+            this->user_identifiers[i] = id;
+        }
+    } else if (type == 1) { // domain
+        for (size_t i = 0; i < id_lens.size(); ++i) {
+            std::string id = total_id.substr(start, id_lens[i]);
+            start += id_lens[i];
+            this->domain_identifiers[i] = id;
+        }
+    } else if (type == 2) { // warning
+        for (size_t i = 0; i < id_lens.size(); ++i) {
+            std::string id = total_id.substr(start, id_lens[i]);
+            start += id_lens[i];
+            this->warning_identifiers[i] = id;
+        }
+    }
+
+    return;
+}
