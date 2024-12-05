@@ -207,13 +207,14 @@ void parse_content(std::ifstream &input_file) {
         }
         record.print_summary();
     } else {
+        std::vector<MPI_Request> requests;
         mpi_record.convert(record);
 
         // send user ID vector size
         size_t user_entry_size = mpi_record.user_identifiers.size();
-        MPI_Send(&user_entry_size, 1, MPI_UNSIGNED_LONG, 0, 0, MPI_COMM_WORLD);
-        MPI_Send(&mpi_record.user_receive_counts[0], user_entry_size, MPI_UINT64_T, 0, 0, MPI_COMM_WORLD);
-        MPI_Send(&mpi_record.user_deliver_counts[0], user_entry_size, MPI_UINT64_T, 0, 0, MPI_COMM_WORLD);
+        MPI_Isend(&user_entry_size, 1, MPI_UNSIGNED_LONG, 0, 0, MPI_COMM_WORLD, &requests.emplace_back());
+        MPI_Isend(&mpi_record.user_receive_counts[0], user_entry_size, MPI_UINT64_T, 0, 0, MPI_COMM_WORLD, &requests.emplace_back());
+        MPI_Isend(&mpi_record.user_deliver_counts[0], user_entry_size, MPI_UINT64_T, 0, 0, MPI_COMM_WORLD, &requests.emplace_back());
 
         // combine all user IDs into a single string and send once
         size_t total_user_id_len = 0;
@@ -225,14 +226,14 @@ void parse_content(std::ifstream &input_file) {
             total_user_id_len += user_id_len;
             total_user_id += user_id;
         }
-        MPI_Send(&user_id_lens[0], user_entry_size, MPI_UNSIGNED_LONG, 0, 0, MPI_COMM_WORLD);
-        MPI_Send(total_user_id.c_str(), total_user_id_len+1, MPI_CHAR, 0, 0, MPI_COMM_WORLD);
+        MPI_Isend(&user_id_lens[0], user_entry_size, MPI_UNSIGNED_LONG, 0, 0, MPI_COMM_WORLD, &requests.emplace_back());
+        MPI_Isend(total_user_id.c_str(), total_user_id_len+1, MPI_CHAR, 0, 0, MPI_COMM_WORLD, &requests.emplace_back());
 
         // send domain ID vector size
         size_t domain_entry_size = mpi_record.domain_identifiers.size();
-        MPI_Send(&domain_entry_size, 1, MPI_UNSIGNED_LONG, 0, 0, MPI_COMM_WORLD);
-        MPI_Send(&mpi_record.domain_receive_counts[0], domain_entry_size, MPI_UINT64_T, 0, 0, MPI_COMM_WORLD);
-        MPI_Send(&mpi_record.domain_deliver_counts[0], domain_entry_size, MPI_UINT64_T, 0, 0, MPI_COMM_WORLD);
+        MPI_Isend(&domain_entry_size, 1, MPI_UNSIGNED_LONG, 0, 0, MPI_COMM_WORLD, &requests.emplace_back());
+        MPI_Isend(&mpi_record.domain_receive_counts[0], domain_entry_size, MPI_UINT64_T, 0, 0, MPI_COMM_WORLD, &requests.emplace_back());
+        MPI_Isend(&mpi_record.domain_deliver_counts[0], domain_entry_size, MPI_UINT64_T, 0, 0, MPI_COMM_WORLD, &requests.emplace_back());
 
         // combine all domain IDs into a single string and send once
         size_t total_domain_id_len = 0;
@@ -244,13 +245,13 @@ void parse_content(std::ifstream &input_file) {
             domain_id_lens.emplace_back(domain_id_len);
             total_domain_id += domain_id;
         }
-        MPI_Send(&domain_id_lens[0], domain_entry_size, MPI_UNSIGNED_LONG, 0, 0, MPI_COMM_WORLD);
-        MPI_Send(total_domain_id.c_str(), total_domain_id_len+1, MPI_CHAR, 0, 0, MPI_COMM_WORLD);
+        MPI_Isend(&domain_id_lens[0], domain_entry_size, MPI_UNSIGNED_LONG, 0, 0, MPI_COMM_WORLD, &requests.emplace_back());
+        MPI_Isend(total_domain_id.c_str(), total_domain_id_len+1, MPI_CHAR, 0, 0, MPI_COMM_WORLD, &requests.emplace_back());
 
         // send warning ID vector size
         size_t warning_entry_size = mpi_record.warning_identifiers.size();
-        MPI_Send(&warning_entry_size, 1, MPI_UNSIGNED_LONG, 0, 0, MPI_COMM_WORLD);
-        MPI_Send(&mpi_record.warning_counts[0], warning_entry_size, MPI_UINT64_T, 0, 0, MPI_COMM_WORLD);
+        MPI_Isend(&warning_entry_size, 1, MPI_UNSIGNED_LONG, 0, 0, MPI_COMM_WORLD, &requests.emplace_back());
+        MPI_Isend(&mpi_record.warning_counts[0], warning_entry_size, MPI_UINT64_T, 0, 0, MPI_COMM_WORLD, &requests.emplace_back());
 
         // combine all warning IDs into a single string and send once
         size_t total_warning_id_len = 0;
@@ -262,9 +263,11 @@ void parse_content(std::ifstream &input_file) {
             total_warning_id_len += warning_id_len;
             total_warning_id += warning_id;
         }
-        MPI_Send(&warning_id_lens[0], warning_entry_size, MPI_UNSIGNED_LONG, 0, 0, MPI_COMM_WORLD);
-        MPI_Send(total_warning_id.c_str(), total_warning_id_len+1, MPI_CHAR, 0, 0, MPI_COMM_WORLD);
+        MPI_Isend(&warning_id_lens[0], warning_entry_size, MPI_UNSIGNED_LONG, 0, 0, MPI_COMM_WORLD, &requests.emplace_back());
+        MPI_Isend(total_warning_id.c_str(), total_warning_id_len+1, MPI_CHAR, 0, 0, MPI_COMM_WORLD, &requests.emplace_back());
 
-        MPI_Send(&mpi_record.total_counts[0], 6, MPI_UINT64_T, 0, 0, MPI_COMM_WORLD);
+        MPI_Isend(&mpi_record.total_counts[0], 6, MPI_UINT64_T, 0, 0, MPI_COMM_WORLD, &requests.emplace_back());
+
+        MPI_Waitall(requests.size(), requests.data(), MPI_STATUSES_IGNORE);
     }
 }
