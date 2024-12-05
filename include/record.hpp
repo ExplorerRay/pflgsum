@@ -72,15 +72,24 @@ public:
     uint64_t& create_or_get_warning(std::string& identifier);
 
     /**
-     * @brief Increment the deliver count for a user and domain.
+     * @brief Increment the send count for a user and domain.
      */
-    void increment_deliver(std::string& user_identifier, std::string& domain_identifier);
-
+    void increment_sender(std::string& user_identifier, std::string& domain_identifier);
 
     /**
-     * @brief Increment the receive count for a user and domain
+     * @brief Increment the receive count for a user and domain.
      */
-    void increment_receive(std::string& user_identifier, std::string& domain_identifier);
+    void increment_recipient(std::string& user_identifier, std::string& domain_identifier);
+
+    /**
+     * @brief Increment the deliver count.
+     */
+    void increment_deliver();
+
+    /**
+     * @brief Increment the receive count.
+     */
+    void increment_receive();
 
     /**
      * @brief Increment the warning count for a specific warning.
