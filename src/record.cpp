@@ -47,15 +47,21 @@ uint64_t& Record::create_or_get_warning(std::string& identifier) {
     return warning_map[identifier];
 }
 
-void Record::increment_deliver(std::string& user_identifier, std::string& domain_identifier) {
+void Record::increment_sender(std::string& user_identifier, std::string& domain_identifier) {
     this->create_or_get_user(user_identifier).deliver_count++;
     this->create_or_get_domain(domain_identifier).deliver_count++;
+}
+
+void Record::increment_recipient(std::string& user_identifier, std::string& domain_identifier) {
+    this->create_or_get_user(user_identifier).receive_count++;
+    this->create_or_get_domain(domain_identifier).receive_count++;
+}
+
+void Record::increment_deliver() {
     this->deliver_count++;
 }
 
-void Record::increment_receive(std::string& user_identifier, std::string& domain_identifier) {
-    this->create_or_get_user(user_identifier).receive_count++;
-    this->create_or_get_domain(domain_identifier).receive_count++;
+void Record::increment_receive() {
     this->receive_count++;
 }
 
