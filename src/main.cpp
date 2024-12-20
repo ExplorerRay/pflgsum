@@ -8,6 +8,9 @@
 #include <chrono>
 
 int main(int argc, char **argv) {
+    using namespace std::chrono;
+
+    time_point<high_resolution_clock> startTime = high_resolution_clock::now();
     std::ios::sync_with_stdio(false);
     std::cin.tie(0);
 
@@ -17,9 +20,6 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    using namespace std::chrono;
-
-    time_point<high_resolution_clock> startTime = high_resolution_clock::now();
     
     std::string filename = argv[1];
     int threadCount = std::stoi(argv[2]);
@@ -41,11 +41,12 @@ int main(int argc, char **argv) {
 
     time_point<high_resolution_clock> inputTime = high_resolution_clock::now();
 
-    for (int i = 0; i < threadCount; i++) {
+    for (int i = 1; i < threadCount; i++) {
       int start = i * contentSize / threadCount;
       int end = (i + 1) * contentSize / threadCount;
       threadManager.add_thread(parse_content, i, start, end, threadContext, mode, &threadManager);
     }
+    parse_content(0, 0, contentSize / threadCount, threadContext, mode, &threadManager);
     threadManager.joinAll();
 
     time_point<high_resolution_clock> parseTime = high_resolution_clock::now();
@@ -58,10 +59,11 @@ int main(int argc, char **argv) {
     duration<double> inputDuration = (inputTime - startTime);
     duration<double> parseDuration = (parseTime - inputTime);
     duration<double> outputDuration = (outputTime - parseTime);
+    duration<double> totalDuration = (outputTime - startTime);
 
     std::cout << "inputDuration = " << inputDuration << std::endl;
     std::cout << "parseDuration = " << parseDuration << std::endl;
     std::cout << "outputDuration = " << outputDuration << std::endl;
-
+    std::cout << "totalDuration = " << totalDuration << std::endl;
     return 0;
 }

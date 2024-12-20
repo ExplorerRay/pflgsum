@@ -97,9 +97,9 @@ void parse_content(int threadID, int start, int end, ThreadContext* context, int
     }
     if (reduceMode == 0)
     {
-        if ((size_t)threadID + 1 != threadManager->getThreadCount())
+        if ((size_t)threadID != threadManager->getThreadCount())
         {
-            auto waitedThread = threadManager->getThread(threadID+1);
+            auto waitedThread = threadManager->getThread(threadID);
             if (waitedThread->joinable())
             {
                 waitedThread->join();
@@ -110,12 +110,12 @@ void parse_content(int threadID, int start, int end, ThreadContext* context, int
     else if (reduceMode == 1)
     {
         size_t twoPower = 2;
-        size_t threadCount = threadManager->getThreadCount();
+        size_t threadCount = threadManager->getThreadCount() + 1;
         while (twoPower <= threadCount)
         {
             if ((threadID % twoPower) == 0)
             {
-                auto waitedThread = threadManager->getThread(threadID + twoPower/2);
+                auto waitedThread = threadManager->getThread(threadID + twoPower/2 - 1);
                 if (waitedThread->joinable())
                 {
                     waitedThread->join();
