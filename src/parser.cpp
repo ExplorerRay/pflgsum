@@ -205,7 +205,6 @@ void parse_content(std::ifstream &input_file) {
 
             record.aggregate(other_record);
         }
-        record.print_summary();
     } else {
         std::vector<MPI_Request> requests;
         mpi_record.convert(record);
@@ -269,5 +268,11 @@ void parse_content(std::ifstream &input_file) {
         MPI_Isend(&mpi_record.total_counts[0], 6, MPI_UINT64_T, 0, 0, MPI_COMM_WORLD, &requests.emplace_back());
 
         MPI_Waitall(requests.size(), requests.data(), MPI_STATUSES_IGNORE);
+    }
+    double end_time = MPI_Wtime();
+    std::cout << end_time - start_time << "\n";
+
+    if (rank == 0) {
+        record.print_summary();
     }
 }
